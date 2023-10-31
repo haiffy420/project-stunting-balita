@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Baby;
+use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
 use Flowframe\Trend\TrendValue;
@@ -19,10 +20,10 @@ class BalitaChart extends ChartWidget
     {
         $data = Trend::model(Baby::class)
             ->between(
-                start: now()->startOfMonth(),
-                end: now()->endOfMonth(),
+                start: now()->startOfYear(),
+                end: now()->endOfYear(),
             )
-            ->perDay()
+            ->perMonth()
             ->count();
 
         return [
@@ -32,7 +33,9 @@ class BalitaChart extends ChartWidget
                     'data' => $data->map(fn (TrendValue $value) => $value->aggregate),
                 ],
             ],
-            'labels' => $data->map(fn (TrendValue $value) => $value->date),
+            'labels' => $data->map(function (TrendValue $value) {
+                return Carbon::parse($value->date)->format('F');
+            }),
         ];
     }
 

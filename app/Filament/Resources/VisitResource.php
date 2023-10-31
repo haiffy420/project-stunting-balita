@@ -49,17 +49,18 @@ class VisitResource extends Resource
                         }
                     )
                     ->native(false)
-                    ->columnSpan(2),
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\TextInput::make('kunjungan')
+                        ->label('Kunjungan-ke')
+                        ->disabled()
+                        ->dehydrated(),
                 Wizard::make()
                     ->schema([
                         Wizard\Step::make('Detail bayi')
                             ->description('Detail bayi pada kunjungan ini')
                             ->icon('heroicon-m-document-text')
                             ->schema([
-                                Forms\Components\TextInput::make('kunjungan')
-                                    ->label('Kunjungan-ke')
-                                    ->disabled()
-                                    ->dehydrated(),
                                 Forms\Components\DatePicker::make('tanggal_kunjungan')
                                     ->required(),
                                 Forms\Components\TextInput::make('berat_badan')
@@ -120,8 +121,12 @@ class VisitResource extends Resource
                                             )
                                             ->numeric()
                                             ->maxValue(11),
-                                    ])->columns(7)->columnSpanFull(),
-                            ])->columns(7),
+                                    ])->columns(6)->columnSpanFull(),
+                            ])->columns([
+                                'sm' => 3,
+                                'md' => 3,
+                                'xl' => 6,
+                            ]),
                         // Wizard\Step::make('Detail penyakit')
                         //     ->description('Detail penyakit bayi pada kunjungan ini')
                         //     ->icon('heroicon-m-clipboard-document-list')
@@ -147,9 +152,9 @@ class VisitResource extends Resource
 
                         //     ])
                         //     ->columns(7),
-                    ]),
+                    ])->columnSpan('full'),
             ])
-            ->columns(1);
+            ->columns(2);
     }
 
     public static function table(Table $table): Table
