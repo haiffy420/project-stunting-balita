@@ -7,7 +7,6 @@ use App\Filament\Resources\VisitResource\RelationManagers;
 use App\Models\Baby;
 use App\Models\Visit;
 use Filament\Forms;
-use Filament\Forms\Components\Wizard;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -16,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Carbon;
 
 class VisitResource extends Resource
 {
@@ -46,22 +46,36 @@ class VisitResource extends Resource
                             $set('baby.umur', Baby::query()->where('id', $get('baby_id'))->pluck('umur')->first());
                             $set('baby.tahun', Baby::query()->where('id', $get('baby_id'))->pluck('tahun')->first());
                             $set('baby.bulan', Baby::query()->where('id', $get('baby_id'))->pluck('bulan')->first());
+
+                            $latestVisit = Visit::where('baby_id', $get('baby_id'))
+                                ->latest('tanggal_kunjungan')
+                                ->first();
+                            $set('berat_badan', fn () => optional($latestVisit)->berat_badan);
+                            $set('tinggi_badan', fn () => optional($latestVisit)->tinggi_badan);
+                            $set('lingkar_lengan', fn () => optional($latestVisit)->lingkar_lengan);
+                            $set('lingkar_kepala', fn () => optional($latestVisit)->lingkar_kepala);
+                            $set('suhu_badan', fn () => optional($latestVisit)->suhu_badan);
+                            $set('penyakit', fn () => optional($latestVisit)->penyakit);
+                            $set('keluhan', fn () => optional($latestVisit)->keluhan);
                         }
                     )
                     ->native(false)
                     ->searchable()
                     ->preload(),
                 Forms\Components\TextInput::make('kunjungan')
-                        ->label('Kunjungan-ke')
-                        ->disabled()
-                        ->dehydrated(),
-                Wizard::make()
+                    ->label('Kunjungan-ke')
+                    ->disabled()
+                    ->dehydrated(),
+                Forms\Components\Wizard::make()
                     ->schema([
-                        Wizard\Step::make('Detail bayi')
+                        Forms\Components\Wizard\Step::make('Detail bayi')
                             ->description('Detail bayi pada kunjungan ini')
                             ->icon('heroicon-m-document-text')
                             ->schema([
                                 Forms\Components\DatePicker::make('tanggal_kunjungan')
+                                    ->default(function () {
+                                        return Carbon::now()->format('d-m-Y');
+                                    })
                                     ->required(),
                                 Forms\Components\TextInput::make('berat_badan')
                                     ->required()
@@ -93,7 +107,7 @@ class VisitResource extends Resource
                                     ->relationship('baby', 'id')
                                     ->label('Umur Balita')
                                     ->schema([
-                                        Forms\Components\TextInput::make('umur')
+                                        Forms\Components\Hidden::make('umur')
                                             ->disabled()
                                             ->dehydrated(),
                                         Forms\Components\TextInput::make('tahun')
@@ -102,7 +116,15 @@ class VisitResource extends Resource
                                             ->afterStateUpdated(
                                                 function (Set $set, Get $get) {
                                                     if ($get('tahun') == '') {
-                                                        $set('tahun', 0);
+                                                        return $set('umur', $get('bulan') . ' Bulan');
+                                                    } else if ($get('bulan') == '') {
+                                                        return $set('umur', $get('tahun') . ' Tahun');
+                                                    } else if ($get('tahun') == '' && $get('bulan') == '') {
+                                                        return $set('umur', '');
+                                                    } else if ($get('tahun') != '' && $get('bulan') == '') {
+                                                        return $set('umur', $get('tahun') . ' Tahun');
+                                                    } else if ($get('tahun') == '' && $get('bulan') != '') {
+                                                        return $set('umur', $get('bulan') . ' Bulan');
                                                     }
                                                     $set('umur', $get('tahun') . ' Tahun ' . $get('bulan') . ' Bulan');
                                                 }
@@ -113,8 +135,16 @@ class VisitResource extends Resource
                                             ->live()
                                             ->afterStateUpdated(
                                                 function (Set $set, Get $get) {
-                                                    if ($get('bulan') == '') {
-                                                        $set('bulan', 0);
+                                                    if ($get('tahun') == '') {
+                                                        return $set('umur', $get('bulan') . ' Bulan');
+                                                    } else if ($get('bulan') == '') {
+                                                        return $set('umur', $get('tahun') . ' Tahun');
+                                                    } else if ($get('tahun') == '' && $get('bulan') == '') {
+                                                        return $set('umur', '');
+                                                    } else if ($get('tahun') != '' && $get('bulan') == '') {
+                                                        return $set('umur', $get('tahun') . ' Tahun');
+                                                    } else if ($get('tahun') == '' && $get('bulan') != '') {
+                                                        return $set('umur', $get('bulan') . ' Bulan');
                                                     }
                                                     $set('umur', $get('tahun') . ' Tahun ' . $get('bulan') . ' Bulan');
                                                 }
@@ -122,6 +152,9 @@ class VisitResource extends Resource
                                             ->numeric()
                                             ->maxValue(11),
                                     ])->columns(6)->columnSpanFull(),
+                                Forms\Components\Placeholder::make('note')
+                                    ->label('Catatan: Data bayi akan otomatis terisi sesuai kunjungan sebelumnya (jika pernah). Silahkan diubah sesuai dengan kondisi bayi saat ini.')
+                                    ->columnSpanFull(),
                             ])->columns([
                                 'sm' => 3,
                                 'md' => 3,
@@ -153,8 +186,7 @@ class VisitResource extends Resource
                         //     ])
                         //     ->columns(7),
                     ])->columnSpan('full'),
-            ])
-            ->columns(2);
+            ])->columns(2);
     }
 
     public static function table(Table $table): Table
@@ -190,6 +222,7 @@ class VisitResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

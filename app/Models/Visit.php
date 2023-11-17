@@ -12,9 +12,12 @@ class Visit extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'subform1' => 'json',
+    ];
+
     public function baby(): BelongsTo
     {
         return $this->belongsTo(Baby::class);
     }
-
 }

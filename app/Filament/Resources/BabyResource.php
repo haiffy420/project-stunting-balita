@@ -48,6 +48,7 @@ class BabyResource extends Resource
                             ->maxLength(255),
                         Forms\Components\TextInput::make('nik')
                             ->label('Nik')
+                            ->numeric()
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
@@ -133,6 +134,7 @@ class BabyResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
